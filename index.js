@@ -2,16 +2,28 @@ const UUID = "ec2061ab-12fd-4eab-9a58-485b7a9d4288";
 
 export default {
   async fetch(request) {
-    const url = new URL(request.url);
+    const upgradeHeader = request.headers.get("Upgrade");
 
-    if (url.pathname === "/") {
-      return new Response("VLESS Worker is running");
+    if (upgradeHeader !== "websocket") {
+      return new Response("VLESS Worker Online", {
+        status: 200,
+      });
     }
 
-    if (url.pathname === `/${UUID}`) {
-      return new Response("VLESS endpoint ready");
-    }
+    const [client, server] = Object.values(new WebSocketPair());
 
-    return new Response("Not Found", { status: 404 });
+    server.accept();
+
+    server.send(
+      JSON.stringify({
+        status: "connected",
+        uuid: UUID,
+      })
+    );
+
+    return new Response(null, {
+      status: 101,
+      webSocket: client,
+    });
   },
 };
